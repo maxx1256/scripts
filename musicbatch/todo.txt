@@ -1,0 +1,7 @@
+ - normalize path:
+   - split into folders array
+   - if the last one starts with CD, discard
+   - keep 2 last items in the array
+   - shorten each item by split('.', '-', ' '), keep first two
+ - if file exists, append number
+ - transliterate russian letters
