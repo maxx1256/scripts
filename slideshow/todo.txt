@@ -1,0 +1,5 @@
+
+Done:
+ - try to copy deleted file, should not crash
+ - restart in "CopyFiles" step, shoild start viewer - kind of done
+ - add param to specify config file at start
