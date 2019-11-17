@@ -278,7 +278,7 @@ class SlideShow(object):
             wait = '{0}'.format(self._config.WaitTime)
             showfolder = self.BufferPath(self._state.ShowBuffer)
             
-            args = ['pqiv', '-f', '-l', '-s', '-d', wait, '--shuffle', showfolder]
+            args = ['pqiv', '-f', '-l', '-s', '-i', '-t', '-d', wait, '--shuffle', showfolder]
             self._viewerPID = os.spawnvp(os.P_NOWAIT, 'pqiv', args) 
 
     def _RotateLogs(self, logfile):
