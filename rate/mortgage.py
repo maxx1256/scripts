@@ -1,0 +1,49 @@
+
+class MortgageCalc(object):
+    def __init__(self):
+        self._primeAmount = 193000.0
+        self._rate = 0.0375
+        self._periodsPerYear = 12
+        self._payPerPeriod = 2000
+        self._ratePaidTotal = 0.0
+        self._primePaidTotal = 0.0
+        self._ratePaidYear = 0.0
+        self._primePaidYear = 0.0
+
+    def _RunPeriod(self, year, month):
+        ratePaid = self._primeAmount * self._rate / self._periodsPerYear
+        primePaid = self._payPerPeriod - ratePaid
+        if (primePaid > self._primeAmount):
+            primePaid = self._primeAmount
+            ratePaid = 0
+
+        print("{}/{:02d} {:10.2f}  {:10.2f}  {:8.2f}  {:8.2f}"
+              .format(year, month, self._primeAmount, self._primeAmount - primePaid, primePaid, ratePaid))
+        self._primeAmount = self._primeAmount - primePaid
+        self._ratePaidTotal = self._ratePaidTotal + ratePaid
+        self._primePaidTotal = self._primePaidTotal + primePaid
+        self._ratePaidYear = self._ratePaidYear + ratePaid
+        self._primePaidYear = self._primePaidYear + primePaid
+
+    def _RunYear(self, year):
+        print("Month    PrimeStart  PrimeEnd    PrimePaid  RatePaid".format())
+        self._ratePaidYear = 0.0
+        self._primePaidYear = 0.0
+        i = 0
+        while i < self._periodsPerYear:
+            i += 1
+            self._RunPeriod(year, i)
+        print("{} total  --        --        {:8.2f}  {:8.2f}".format(year, self._primePaidYear, self._ratePaidYear))
+        print()
+
+    def Run(self):
+        year = 2020
+        while year < 2027:
+            self._RunYear(year)
+            year += 1
+        print("Grand Total --        --        {:8.2f}  {:8.2f}".format(self._primePaidTotal, self._ratePaidTotal))
+
+
+mort = MortgageCalc()
+mort.Run()
+
