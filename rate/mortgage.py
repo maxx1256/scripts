@@ -1,7 +1,7 @@
 
 class MortgageCalc(object):
     def __init__(self):
-        self._balance = 391000.0
+        self._balance = 211000.0
         self._rate = 0.0375
         self._periodsPerYear = 12
         self._payPerPeriod = 2000.66
@@ -26,7 +26,7 @@ class MortgageCalc(object):
         self._primePaidYear = self._primePaidYear + primePaid
 
     def _RunYear(self, year):
-        print("Month     BalanceStart  BalanceEnd    PrincipalPaid  InterestPaid".format())
+        print("Month     BalanceStart  BalanceEnd    PrincipalPaid  InterestPaid")
         self._ratePaidYear = 0.0
         self._primePaidYear = 0.0
         i = 0
@@ -34,14 +34,15 @@ class MortgageCalc(object):
             i += 1
             self._RunPeriod(year, i)
         print("{} total      --        --              {:9.2f}     {:9.2f}".format(year, self._primePaidYear, self._ratePaidYear))
+        print("Grand Total     --        --              {:9.2f}     {:9.2f}".format(self._primePaidTotal, self._ratePaidTotal))
+        print("Deficit                                               {:11.2f}".format(self._ratePaidTotal + self._balance))
         print()
 
     def Run(self):
         year = 2020
-        while year < 2027:
+        while year < 2028:
             self._RunYear(year)
             year += 1
-        print("Grand Total     --        --              {:9.2f}     {:9.2f}".format(self._primePaidTotal, self._ratePaidTotal))
 
 
 mort = MortgageCalc()
