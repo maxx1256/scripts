@@ -48,7 +48,8 @@ class FileList(object):
                 try:
                     filecount = filecount+1
                     ftime = long(os.path.getmtime(fullfname))
-                    self.AddEntry(fullfname[self.__pathlen:], ftime)
+                    fsize = long(os.path.getsize(fullfname))
+                    self.AddEntry(fullfname[self.__pathlen:], ftime, fsize)
                 except:
                     #print "*** File " + fullfname + " is no good, skipping"
                     logging.error("*** File " + fullfname + " is no good, skipping")
@@ -71,16 +72,16 @@ class FileList(object):
         fw = FileWriter(fname)
         fw.Overwrite()
         for x in self.__files:
-            fw.Write(u"{0}{1}{2}\n".format(x[0], DELIMITER, x[1]))
+            fw.Write(u"{0}{1}{2}{3}{4}\n".format(x[0], DELIMITER, x[1], DELIMITER, x[2]))
         fw.Close()
         
     def WriteToFile2(self, fname, extraentries):
         fw = FileWriter(fname)
         fw.Overwrite()
         for x in self.__files:
-            fw.Write(u"{0}{1}{2}\n".format(x[0], DELIMITER, x[1]))
+            fw.Write(u"{0}{1}{2}{3}{4}\n".format(x[0], DELIMITER, x[1], DELIMITER, x[2]))
         for x in extraentries:
-            fw.Write(u"{0}{1}{2}\n".format(x[0], DELIMITER, x[1]))
+            fw.Write(u"{0}{1}{2}{3}{4}\n".format(x[0], DELIMITER, x[1], DELIMITER, x[2]))
         fw.Close()
         
 
@@ -92,8 +93,8 @@ class FileList(object):
         fr.Open(fname)
         while fr.Read():
             line = fr.NextLine()
-            tokens = line.split(DELIMITER, 1)
-            self.AddEntry(tokens[0], tokens[1])
+            tokens = line.split(DELIMITER, 2)
+            self.AddEntry(tokens[0], tokens[1], tokens[2])
         fr.Close()
         self.__Sort()
         
@@ -119,11 +120,11 @@ class FileList(object):
         self.__next = 0
         
         
-    def AddEntry(self, fname, ftime):
+    def AddEntry(self, fname, ftime, fsize):
         fname = fname.replace("\\","/")
         for excl in self.__exclusions:
             if fname.startswith(excl):
-                entry = (fname, long(ftime))
+                entry = (fname, long(ftime), long(fsize))
                 self.__excludedfiles.append(entry)
                 logging.debug(u"Skipping entry in excluded folder: " + fname)
                 return
@@ -132,7 +133,7 @@ class FileList(object):
                 logging.debug(u"Skipping entry in excluded folder: " + fname)
                 return
         logging.debug(u"Adding entry: " + fname)
-        entry = (fname, long(ftime))
+        entry = (fname, long(ftime), long(fsize))
         self.__files.append(entry)
         
     def RemoveCurrentEntry(self):
@@ -150,6 +151,8 @@ class FileList(object):
 #-----------------------------------------------
     
 def __test():
+    logging.basicConfig(filename='sync.log', format='%(asctime)s %(levelname)s : %(message)s', level=logging.DEBUG)
+
     ex = list()
     stdex = list()
 
@@ -162,7 +165,7 @@ def __test():
     print u"--- Excluded files:"
     ex = f.GetExcludedFiles()
     for x in ex:
-        print u"{0}  {1}".format(x[0], x[1])
+        print u"{0}  {1} {2}".format(x[0], x[1], x[2])
         
     f.LoadFromFile(u"bob.list")
     f.WriteToFile(u"bob2.list")
@@ -171,7 +174,7 @@ def __test():
     f.ResetCounter()
     while f.HasMore():
         x = f.GetNext()
-        print u"{0}  {1}".format(x[0], x[1])
+        print u"{0}  {1} {2}".format(x[0], x[1], x[2])
         
 if __name__ == '__main__':
     __test()
