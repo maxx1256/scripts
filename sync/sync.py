@@ -12,7 +12,7 @@ from unicodefile import *
 
 #---------------- CONFIG ---------------------
 
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 LOG_LEVEL = logging.INFO
 #LOG_LEVEL = logging.DEBUG
 
@@ -231,20 +231,21 @@ def SyncData(location):
     if not os.path.exists(GetLocationListName(location)):
         InitData(location)
 
-    print u"Reading..."
-    
+    print u"Reading local list..."
     listold.LoadFromFile(GetLocationListName(location))
     
+    print u"Reading local folder..."
     listcurrent.LoadFolder(path)
 
+    print u"Reading deleted list..."
     if os.path.exists(GetDeletedListName()):
         listdeleted.LoadFromFile(GetDeletedListName())
 
+    print u"Reading cache list..."
     listcache.LoadFromFile(GetCacheListName())
 
-    print u"Analyzing..."
-
     ''' check for added/updated '''
+    print u"Analyzing added/updated..."
     entrycurrent = listcurrent.GetNext()
     entrycache   = listcache.GetNext()
     while entrycurrent != None or entrycache != None:
@@ -252,12 +253,14 @@ def SyncData(location):
         loc_added   = entrycurrent!=None and (entrycache==None or entrycurrent[0]<entrycache[0])
         rem_updated = entrycurrent!=None and entrycache!=None and entrycurrent[0]==entrycache[0]  and entrycurrent[1]<entrycache[1]
         rem_added   = entrycache  !=None and (entrycurrent==None or entrycache[0]<entrycurrent[0])
+        # file size changed but update date is not touched, why?
+        suspicious  = entrycurrent!=None and entrycache!=None and entrycurrent[0]==entrycache[0] and entrycurrent[1]==entrycache[1] and entrycurrent[2]!=entrycache[2]
 
         if loc_updated or loc_added:
-            listAddCache.AddEntry(entrycurrent[0], entrycurrent[1])
+            listAddCache.AddEntry(entrycurrent[0], entrycurrent[1], entrycurrent[2])
             
         if rem_updated or rem_added:
-            listAddLocal.AddEntry(entrycache[0], entrycache[1])
+            listAddLocal.AddEntry(entrycache[0], entrycache[1], entrycache[2])
     
         if loc_added:
             entrycurrent = listcurrent.GetNext()
@@ -266,8 +269,12 @@ def SyncData(location):
         else:
             entrycurrent = listcurrent.GetNext()
             entrycache   = listcache.GetNext()
+
+        if suspicious:
+            logging.warning('File {0} changed in size from {1} to {2} but modification date is still the same.'.format(entrycurrent[0], entrycache[2], entrycurrent[2]))
     
     ''' check for local deleted '''
+    print u"Analyzing local deleted..."
     listcurrent.ResetCounter()
     entrycurrent = listcurrent.GetNext()
     entryold     = listold.GetNext()
@@ -275,7 +282,7 @@ def SyncData(location):
         loc_deleted = entryold!=None and (entrycurrent==None or entrycurrent[0]>entryold[0])     
     
         if loc_deleted:
-            listDelLocal.AddEntry(entryold[0], entryold[1])
+            listDelLocal.AddEntry(entryold[0], entryold[1], entryold[2])
             entryold     = listold.GetNext()
         elif entryold!=None and entrycurrent!=None and entrycurrent[0]==entryold[0]:
             entryold     = listold.GetNext()
@@ -284,6 +291,7 @@ def SyncData(location):
             entrycurrent = listcurrent.GetNext()
 
     ''' check for remote deleted '''
+    print u"Analyzing deleted in remote locations..."
     listcurrent.ResetCounter()
     entrycurrent = listcurrent.GetNext()
     entrydeleted = listdeleted.GetNext()
@@ -291,7 +299,7 @@ def SyncData(location):
         rem_deleted = entrydeleted!=None and entrycurrent!=None and entrydeleted[0]==entrycurrent[0]
         
         if rem_deleted:
-            listDelCache.AddEntry(entrycurrent[0], entrycurrent[1])
+            listDelCache.AddEntry(entrycurrent[0], entrycurrent[1], entrycurrent[2])
             entrycurrent = listcurrent.GetNext()
             entrydeleted = listdeleted.GetNext()
         elif entrycurrent!=None and (entrydeleted==None or entrycurrent[0]<entrydeleted[0]):
@@ -300,6 +308,7 @@ def SyncData(location):
             entrydeleted = listdeleted.GetNext()
 
     ''' If a file was deleted locally, it will look both locally deleted and remotely added, resolve this problem '''
+    print u"Resolving local delete vs remote add..."
     entrydeleted = listDelLocal.GetNext()
     entryadded   = listAddLocal.GetNext()
     while entrydeleted != None and entryadded != None:
@@ -308,6 +317,7 @@ def SyncData(location):
         elif entryadded[0] > entrydeleted[0]:
             entrydeleted = listDelLocal.GetNext()
         else:
+            # if it was updated remotely, keep remote copy even though deleted locally
             if entryadded[1] > entrydeleted[1]:
                 listDelLocal.RemoveCurrentEntry()
             else:
@@ -318,9 +328,8 @@ def SyncData(location):
     listDelLocal.ResetCounter()
     listAddLocal.ResetCounter()
 
-    print u"Applying changes..."
-
     ''' Apply the changes '''
+    print u"Applying changes..."
     while listAddLocal.HasMore():
         entry = listAddLocal.GetNext()
         CopyFile(path, entry[0], True)
@@ -331,7 +340,7 @@ def SyncData(location):
 
     while listDelLocal.HasMore():
         entry = listDelLocal.GetNext()
-        listdeleted.AddEntry(entry[0], entry[1])
+        listdeleted.AddEntry(entry[0], entry[1], entry[2])
         
     while listDelCache.HasMore():
         entry = listDelCache.GetNext()
@@ -370,8 +379,8 @@ def main():
     logging.basicConfig(filename='sync.log', format='%(asctime)s %(levelname)s : %(message)s', level=LOG_LEVEL)
     
 #    AddLocation(u"bob", u"c:\\temp\\1");
-#    SyncData(u"1")
-    #return
+#    SyncData(u"B")
+#    return
     
     print "sync ver. " + VERSION + "\n"
     CheckArgv( 2, "Usage sync <add>|<sync>|<testsync>")

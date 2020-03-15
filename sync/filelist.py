@@ -13,12 +13,12 @@ class FileList(object):
 
     def __init__(self, exclusions, stdexclusions):
         self.__files = []
+        self.__excludedfiles = []
         self.__path = ""
         self.__pathlen = 0
         self.__next = 0
         self.__exclusions = exclusions
         self.__stdexclusions = stdexclusions
-        self.__excludedfiles = []
         os.stat_float_times(False)
 
         
@@ -121,7 +121,7 @@ class FileList(object):
         
         
     def AddEntry(self, fname, ftime, fsize):
-        fname = fname.replace("\\","/")
+        fname = fname.replace("\\", "/")
         for excl in self.__exclusions:
             if fname.startswith(excl):
                 entry = (fname, long(ftime), long(fsize))
@@ -158,6 +158,12 @@ def __test():
 
     ex.append("PHOTO")
 
+    toady = FileList(ex, stdex)
+    toady.AddEntry("bob", 1, 2)
+    fname, ftime, fsize = toady.GetNext()
+    print u'{0} {1} {2}'.format(fname, ftime, fsize)
+
+
     f = FileList(ex, stdex)
     f.LoadFolder(u"c:\\temp")
     f.WriteToFile(u"bob.list")
@@ -173,9 +179,8 @@ def __test():
     print u"--- Loaded files:"
     f.ResetCounter()
     while f.HasMore():
-        x = f.GetNext()
-        print u"{0}  {1} {2}".format(x[0], x[1], x[2])
+        fname, ftime, fsize = f.GetNext()
+        print u"{0}  {1} {2}".format(fname, ftime, fsize )
         
 if __name__ == '__main__':
     __test()
-        
