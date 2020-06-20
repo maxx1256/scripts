@@ -229,6 +229,7 @@ def SyncData(location):
     listcache    = FileList(exclusions, stdexclusions)
 
     if not os.path.exists(GetLocationListName(location)):
+        print u"Initializing location..."
         InitData(location)
 
     print u"Reading local list..."
