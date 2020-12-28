@@ -16,7 +16,7 @@ import const
 from config import *
 from state import *
 
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 
 LOG_LEVEL = logging.INFO
 #LOG_LEVEL = logging.DEBUG
@@ -237,11 +237,8 @@ class SlideShow(object):
                     self._state.LoadBuffer = 1
                 else:
                     self._state.LoadBuffer = 0
-                self._state.ShowSwitchTime = now.replace(hour=self._config.SwitchHour, minute=0, second=0)
-                if self._state.ShowSwitchTime <= now:
-                    self._state.ShowSwitchTime = self._state.ShowSwitchTime + datetime.timedelta(days=1)
-                if self._state.ShowSwitchTime - now < datetime.timedelta(hours=4):
-                    self._state.ShowSwitchTime = self._state.ShowSwitchTime + datetime.timedelta(days=1)
+
+                self._state.ShowSwitchTime = self._NextSwitchTime()
 
             self._state.LoadTime = datetime.datetime.min
             self._StartShow()
@@ -258,6 +255,14 @@ class SlideShow(object):
                 
         self._StartShow()
         return False
+
+    def _NextSwitchTime(self):
+        now = datetime.datetime.now()
+        for i in range(self._config.SwitchHour.count()):
+            nextTime = now.replace(hour=self._config.SwitchHour[i], minute=0, second=0)
+            if nextTime >= now + datetime.timedelta(minutes=30):  # at least 30 minutes from now
+                return nextTime
+        return now.replace(hour=self._config.SwitchHour[0], minute=0, second=0) + datetime.timedelta(days=1)
 
     def _StartShowOnStartup(self):
         if self._state.Step == const.State.Step_CopyFiles and self._state.LoadIndex > 0:
@@ -292,14 +297,13 @@ class SlideShow(object):
             oldName = newName
         
     def _InitialSetup(self):
-        self._state.QuickStart = True
         self._state.ShowBuffer = 0
         self._state.LoadBuffer = 1
         self._state.ListCount  = 0
         self._state.QuickStart = 1
         self._state.LoadTime      = datetime.datetime.min
-        self._state.ShowStartTime = datetime.datetime.min
-        self._state.ShowSwitchTime= datetime.datetime.now()
+        self._state.ShowStartTime = datetime.datetime.min     # when show was started last time
+        self._state.ShowSwitchTime= datetime.datetime.now()   # when we plan to switch to the fresh buffer
         
         self._state.Step = const.State.Step_ReadList
         self._state.Save()

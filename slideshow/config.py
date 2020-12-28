@@ -16,7 +16,7 @@ class Config(object):
         self.RetryDelay         = c.getint('Common', 'RetryDelay')
         self.FilesPerBuffer     = c.getint('Common', 'FilesPerBuffer')
         self.FilesPerBufferQuick= c.getint('Common', 'FilesPerBufferQuick')
-        self.SwitchHour         = c.getint('Common', 'SwitchHour')
+        self.SwitchHour         = sorted([int(hour) for hour in c.get('Common', 'SwitchHour').split(',')])
         self.SkipList           = c.get   ('Common', 'SkipList').lower().split(',')
 
         self.RemoteServer       = c.get('RemoteServer', 'ServerName')
@@ -31,6 +31,7 @@ def __test():
     c = Config(None)
     print(c.WorkingFolder)
     print(c.RetryDelay)
+    print('SwitchHour: ' + str(c.SwitchHour))
     print('RemoteShare: ' + c.RemoteShare)
     print('RemotePath: ' + c.RemotePath)
     
