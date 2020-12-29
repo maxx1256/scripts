@@ -258,7 +258,7 @@ class SlideShow(object):
 
     def _NextSwitchTime(self):
         now = datetime.datetime.now()
-        for i in range(self._config.SwitchHour.count()):
+        for i in range(len(self._config.SwitchHour)):
             nextTime = now.replace(hour=self._config.SwitchHour[i], minute=0, second=0)
             if nextTime >= now + datetime.timedelta(minutes=30):  # at least 30 minutes from now
                 return nextTime
