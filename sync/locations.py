@@ -19,9 +19,10 @@ def __GetLocationListNameOld(location):
     return location + u".list"
 
 def GetLocationExclusionName(location):
+    return os.path.join(ReadLocation(location), MetadataFolder, location + u".exclude")
+
+def __GetLocationExclusionNameOld(location):
     return location + u".exclude"
-
-
 
 def ReadLocation(name):
     location = u""
@@ -46,7 +47,8 @@ def AddLocation(name, folder):
         logging.error(u"Location " + name + u" already exists")
         return
 
-    __AddLocationIdFile(name, folder)
+    if not __ValidateLocationIdFile(name, folder):
+        __AddLocationIdFile(name, folder)
 
     # add to the location list
     fw = FileWriter(GetLocationsFileName())
@@ -57,22 +59,34 @@ def AddLocation(name, folder):
 
 
 def UpgradeLocation(name):
-    folder = ReadLocation(name)
-    if not __ValidateLocation(name, folder):
-        # copy file list first
-        newListPath = GetLocationListName(name)
-        oldListPath = __GetLocationListNameOld(name)
-        if (not os.path.exists(newListPath)) and os.path.exists(oldListPath):
-            destdir = os.path.dirname(newListPath)
-            print u"Moving file list to new location " + destdir
-            logging.info(u"Moving file list to new location " + destdir)
+    # copy file list first
+    newFileName = GetLocationListName(name)
+    oldFileName = __GetLocationListNameOld(name)
+    if (not os.path.exists(newFileName)) and os.path.exists(oldFileName):
+        destdir = os.path.dirname(newFileName)
+        print u"Moving file list to new location " + destdir
+        logging.info(u"Moving file list to new location " + destdir)
+        if not os.path.exists(destdir):
             os.makedirs(destdir)
-            shutil.move(oldListPath, newListPath)
+        shutil.move(oldFileName, newFileName)
 
-        # create id file last
+    # copy exclusions
+    newFileName = GetLocationExclusionName(name)
+    oldFileName = __GetLocationExclusionNameOld(name)
+    if (not os.path.exists(newFileName)) and os.path.exists(oldFileName):
+        destdir = os.path.dirname(newFileName)
+        print u"Moving exclusion list to new location " + destdir
+        logging.info(u"Moving exclusion list to new location " + destdir)
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        shutil.move(oldFileName, newFileName)
+
+    # create id file last
+    folder = ReadLocation(name)
+    if not __ValidateLocationIdFile(name, folder):
         __AddLocationIdFile(name, folder)
 
-def __ValidateLocation(name, folder):
+def __ValidateLocationIdFile(name, folder):
     # id file exists and contains correct name
     path = os.path.join(folder, MetadataFolder, MetadataIdFile)
     if not os.path.exists(path):
