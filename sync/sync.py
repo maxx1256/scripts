@@ -8,19 +8,17 @@ import logging
 import time
 
 from filelist import *
+from locations import *
 from unicodefile import *
 
 #---------------- CONFIG ---------------------
 
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 LOG_LEVEL = logging.INFO
 #LOG_LEVEL = logging.DEBUG
 
 #--------------------------------------------
 
-
-TAB = u"\t"
-EOL = u"\n"
 
 testmode = False
 transferBytes = 0
@@ -28,8 +26,6 @@ transferTime  = 0.0
 exclusions = list()
 stdexclusions = list()
 
-def GetLocationsFileName():
-    return u"_locations"
 
 def GetCacheFolderName():
     return u"_cache"
@@ -40,50 +36,12 @@ def GetChangedFolderName():
 def GetDeletedFolderName():
     return u"_sync_deleted_"
     
-def GetLocationListName(location):
-    return location + u".list"
-
-def GetLocationExclusionName(location):
-    return location + u".exclude"
-
 def GetCacheListName():
     return u"_cache.list"
     
 def GetDeletedListName():
     return u"_deleted.list"
-    
 
-def ReadLocation(name):
-    location = u""
-    if not os.path.exists(GetLocationsFileName()):
-        return location
-
-    fr = FileReader()
-    fr.Open(GetLocationsFileName())
-    while fr.Read():
-        line = fr.NextLine()
-        tokens = line.split(TAB, 1)
-        if (tokens[0].lower() == name.lower()):
-            location = os.path.normpath(tokens[1])
-            break;
-    fr.Close()
-    return location    
-
-
-def AddLocation(name, folder):
-    if ReadLocation(name) != u"":
-        print u"Location " + name + u" already exists"
-        logging.error(u"Location " + name + u" already exists")
-        return
-
-    fw = FileWriter(GetLocationsFileName())
-    fw.Append()
-    s = name + TAB + folder + EOL
-    fw.Write(s)
-    fw.Close()
-    
-    
-    
 def LoadExclusions(location):
     global exclusions    
     global stdexclusions    
@@ -101,6 +59,8 @@ def LoadExclusions(location):
         fr.Close()
     stdexclusions.append(GetChangedFolderName() + "/")
     stdexclusions.append(GetDeletedFolderName() + "/")
+    stdexclusions.append(MetadataFolder + "/")
+
         
 #def ExcludeFoldersXXX(path):
 #    global exclusions    
@@ -115,15 +75,14 @@ def LoadExclusions(location):
 #    return set([os.path.join(path, GetChangedFolderName()), os.path.join(path, GetDeletedFolderName())  ])
 
 
-def InitData(location):
+def InitData(location, locationListName):
     path = ReadLocation(location)
     if path=="":
         logging.error(u"Invalid location " + location)
         return
-    fname = GetLocationListName(location)
     f = FileList(exclusions, stdexclusions)
     f.LoadFolder(path)
-    f.WriteToFile(fname)
+    f.WriteToFile(locationListName)
 
     if not os.path.exists(GetCacheListName()):
         f.WriteToFile(GetCacheListName())
@@ -142,13 +101,13 @@ def VerifyFolder(dest):
                 os.makedirs(destdir)
     except IOError as (errno, strerror):
         logging.error(u"I/O error({0}): {1}, making folder {2}".format(errno, strerror, destdir))
-    
-    
+
+
 def Copy(src, dest):
     global transferBytes
     global transferTime
 
-    VerifyFolder(dest)    
+    VerifyFolder(dest)
     try:
         if testmode:
             logging.warning("Copying file " + src + " to " + dest)
@@ -161,9 +120,9 @@ def Copy(src, dest):
             transferTime  += len
     except IOError as (errno, strerror):
         logging.error(u"I/O error({0}): {1}, copying file {2}".format(errno, strerror, src))
-    
+
 def Move(src, dest):
-    VerifyFolder(dest)    
+    VerifyFolder(dest)
     try:
         if testmode:
             logging.warning("Moving file " + src + " to " + dest)
@@ -175,7 +134,7 @@ def Move(src, dest):
         logging.error(u"I/O error({0}): {1}, moving file {2}".format(errno, strerror, src))
     except OSError as (errno, strerror):
         logging.error(u"OS error({0}): {1}, moving file {2}".format(errno, strerror, src))
-    
+
 def CopyFile(path, fname, tolocal):
     cachefile = os.path.join(GetCacheFolderName(), fname);
     localfile = os.path.join(path, fname);
@@ -191,7 +150,7 @@ def CopyFile(path, fname, tolocal):
     else:
         logging.info(u"Copying file " + fname + u" to cache")
         Copy(localfile, cachefile)
-    return;    
+    return;
 
 def DeleteFile(path, fname):
     localfile = os.path.join(path, fname);
@@ -205,15 +164,18 @@ def DeleteFile(path, fname):
 #            os.rmdir(localdir)
 #        except IOError as (errno, strerror):
 #            logging.error(u"I/O error({0}): {1}, removing folder {2}".format(errno, strerror, localdir))
-#    
+#
 
 def SyncData(location):
     path = ReadLocation(location)
     if path=="":
-        logging.error(u"Invalid location " + location)
+        logging.error(u"Invalid location " + location + u"\n\n")
         return
-    
-    logging.info(u"\n\nSyncing location " + location + "\n\n")
+
+    logging.info(u"Upgrading location " + location)
+    UpgradeLocation(location)
+
+    logging.info(u"Syncing location " + location)
     LoadExclusions(location)
     
     # changes to apply
@@ -228,12 +190,13 @@ def SyncData(location):
     listdeleted  = FileList([], stdexclusions)
     listcache    = FileList(exclusions, stdexclusions)
 
-    if not os.path.exists(GetLocationListName(location)):
+    locationListName = GetLocationListName(location)
+    if not os.path.exists(locationListName):
         print u"Initializing location..."
-        InitData(location)
+        InitData(location, locationListName)
 
     print u"Reading local list..."
-    listold.LoadFromFile(GetLocationListName(location))
+    listold.LoadFromFile(locationListName)
     
     print u"Reading local folder..."
     listcurrent.LoadFolder(path)
@@ -356,17 +319,14 @@ def SyncData(location):
         print u"Rereading..."
         listcurrent.LoadFolder(path)
         listcurrent.WriteToFile2(GetCacheListName(), listcache.GetExcludedFiles())
-        listcurrent.WriteToFile(GetLocationListName(location))
+        listcurrent.WriteToFile(locationListName)
 
     speed = 0.0
     if transferTime > 0.0001:
         speed = transferBytes/transferTime/1024/1024
     
     logging.info(u"Copied {0:,} bytes in {1:.2f} seconds".format(transferBytes,transferTime)) 
-    logging.info(u"Sync completed! Average speed {0:.2f} MB/sec.".format(speed) )
-
-    
-
+    logging.info(u"Sync completed! Average speed {0:.2f} MB/sec.".format(speed) + "\n\n")
 
 
 def CheckArgv(minrequired, message):
