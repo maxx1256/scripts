@@ -24,6 +24,9 @@ def GetLocationExclusionName(location):
 def __GetLocationExclusionNameOld(location):
     return location + u".exclude"
 
+def GetLocationInclusionName(location):
+    return os.path.join(ReadLocation(location), MetadataFolder, location + u".include")
+
 def ReadLocation(name):
     location = u""
     if not os.path.exists(GetLocationsFileName()):

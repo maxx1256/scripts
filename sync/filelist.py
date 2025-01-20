@@ -11,7 +11,7 @@ DELIMITER = u"*"
 
 class FileList(object):
 
-    def __init__(self, exclusions, stdexclusions):
+    def __init__(self, exclusions, stdexclusions, inclusions):
         self.__files = []
         self.__excludedfiles = []
         self.__path = ""
@@ -19,14 +19,15 @@ class FileList(object):
         self.__next = 0
         self.__exclusions = exclusions
         self.__stdexclusions = stdexclusions
+        self.__inclusions = inclusions
         os.stat_float_times(False)
 
-        
+
     def Error(self, msg):
         logging.error(msg)
         print msg
         sys.exit(1)
-        
+
 
     def __DoLoadFolder(self, path):
         logging.debug("Reading folder " + path)
@@ -122,6 +123,13 @@ class FileList(object):
         
     def AddEntry(self, fname, ftime, fsize):
         fname = fname.replace("\\", "/")
+        if len(self.__inclusions) > 0:
+            for incl in self.__inclusions:
+                if not fname.startswith(incl):
+                    entry = (fname, long(ftime), long(fsize))
+                    self.__excludedfiles.append(entry)
+                    logging.debug(u"Skipping entry not in included folder: " + fname)
+                    return
         for excl in self.__exclusions:
             if fname.startswith(excl):
                 entry = (fname, long(ftime), long(fsize))
@@ -130,7 +138,7 @@ class FileList(object):
                 return
         for excl in self.__stdexclusions:
             if fname.startswith(excl):
-                logging.debug(u"Skipping entry in excluded folder: " + fname)
+                logging.debug(u"Skipping entry in std excluded folder: " + fname)
                 return
         logging.debug(u"Adding entry: " + fname)
         entry = (fname, long(ftime), long(fsize))
@@ -155,16 +163,19 @@ def __test():
 
     ex = list()
     stdex = list()
+    inc = list()
 
-    ex.append("PHOTO")
+    ex.append("tests/filelist/excluded")
+    inc.append("tests/filelist/included")
 
-    toady = FileList(ex, stdex)
+    toady = FileList(ex, stdex, inc)
     toady.AddEntry("bob", 1, 2)
-    fname, ftime, fsize = toady.GetNext()
-    print u'{0} {1} {2}'.format(fname, ftime, fsize)
+    while toady.HasMore():
+        fname, ftime, fsize = toady.GetNext()
+        print u'{0} {1} {2}'.format(fname, ftime, fsize)
 
 
-    f = FileList(ex, stdex)
+    f = FileList(ex, stdex, inc)
     f.LoadFolder(u"c:\\temp")
     f.WriteToFile(u"bob.list")
 
