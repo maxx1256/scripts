@@ -13,7 +13,7 @@ from unicodefile import *
 
 #---------------- CONFIG ---------------------
 
-VERSION = "1.0.7"
+VERSION = "1.0.6"
 LOG_LEVEL = logging.INFO
 #LOG_LEVEL = logging.DEBUG
 
@@ -25,7 +25,6 @@ transferBytes = 0
 transferTime  = 0.0
 exclusions = list()
 stdexclusions = list()
-inclusions = list()
 
 
 def GetCacheFolderName():
@@ -45,9 +44,7 @@ def GetDeletedListName():
 
 def LoadExclusions(location):
     global exclusions    
-    global stdexclusions
-    global inclusions
-
+    global stdexclusions    
     fname = GetLocationExclusionName(location)
     if os.path.exists(fname):
         fr = FileReader()
@@ -56,24 +53,10 @@ def LoadExclusions(location):
             line = fr.NextLine().rstrip().replace("\\","/")
             if len(line) > 0:
                 if line[-1] != "/":
-                    line = line + "/"
+                    line = line + "/";
                 exclusions.append(line)
                 logging.debug(u"custom exclusions " + line)
         fr.Close()
-
-    fname = GetLocationInclusionName(location)
-    if os.path.exists(fname):
-        fr = FileReader()
-        fr.Open(fname)
-        while fr.Read():
-            line = fr.NextLine().rstrip().replace("\\","/")
-            if len(line) > 0:
-                if line[-1] != "/":
-                    line = line + "/"
-                inclusions.append(line)
-                logging.debug(u"custom inclusions " + line)
-        fr.Close()
-
     stdexclusions.append(GetChangedFolderName() + "/")
     stdexclusions.append(GetDeletedFolderName() + "/")
     stdexclusions.append(MetadataFolder + "/")
@@ -97,7 +80,7 @@ def InitData(location, locationListName):
     if path=="":
         logging.error(u"Invalid location " + location)
         return
-    f = FileList(exclusions, stdexclusions, inclusions)
+    f = FileList(exclusions, stdexclusions)
     f.LoadFolder(path)
     f.WriteToFile(locationListName)
 
@@ -196,16 +179,16 @@ def SyncData(location):
     LoadExclusions(location)
     
     # changes to apply
-    listDelLocal = FileList([], stdexclusions, [])
-    listDelCache = FileList([], stdexclusions, [])
-    listAddCache = FileList([], stdexclusions, [])
-    listAddLocal = FileList([], stdexclusions, [])
+    listDelLocal = FileList([], stdexclusions)
+    listDelCache = FileList([], stdexclusions)
+    listAddCache = FileList([], stdexclusions)
+    listAddLocal = FileList([], stdexclusions)
     
     # sources
-    listold      = FileList([], stdexclusions, [])
-    listcurrent  = FileList([], stdexclusions, [])
-    listdeleted  = FileList([], stdexclusions, [])
-    listcache    = FileList(exclusions, stdexclusions, inclusions)
+    listold      = FileList([], stdexclusions)
+    listcurrent  = FileList([], stdexclusions)
+    listdeleted  = FileList([], stdexclusions)
+    listcache    = FileList(exclusions, stdexclusions)
 
     locationListName = GetLocationListName(location)
     if not os.path.exists(locationListName):
